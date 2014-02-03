@@ -11,11 +11,13 @@
 #import "AFNetworking.h"
 #import "GoogleCell.h"
 
+NSInteger startIndex;
 @interface SearchViewController ()
 
 @property (nonatomic, strong) NSMutableArray *imageResults;
 @property (weak, nonatomic) IBOutlet UICollectionView *photoCollectionView;
 @property (weak, nonatomic) IBOutlet UISearchBar *googleSearchBar;
+
 
 @end
 
@@ -44,6 +46,9 @@
     
     self.photoCollectionView.dataSource=self;
     self.photoCollectionView.delegate=self;
+    
+    startIndex = 1;
+    self.photoCollectionView.alwaysBounceVertical = YES;
     [self.photoCollectionView reloadData];
 }
 
@@ -77,7 +82,9 @@
     cell.backgroundColor = [UIColor whiteColor];
     
     cell.googlePhotoImageView.contentMode = UIViewContentModeScaleAspectFill;
+    
     [cell.googlePhotoImageView setImageWithURL:[NSURL URLWithString:[self.imageResults[indexPath.row] valueForKey:@"url"]]];
+    //[self.photoCollectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionBottom animated:YES];
     /*UIImageView *imageView = nil;
     const int IMAGE_TAG = 1;
     if (cell == nil) {
@@ -117,8 +124,8 @@
         retval = CGSizeMake(50, 50);
     }
     
-    //retval.height += 10;
-    //retval.width += 10;
+    retval.height += 30;
+    retval.width += 30;
     return retval;
     
 }
@@ -132,6 +139,7 @@
     [self.imageResults removeAllObjects];
     
     NSInteger start = 1;
+    startIndex =1;
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%@&start=%u", [searchBar.text stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding],start]];
     NSURLRequest *request = [NSURLRequest requestWithURL:url];
     
@@ -144,34 +152,10 @@
     } failure:nil];
     
     [operation start];
-    url =[NSURL URLWithString:[NSString stringWithFormat:@"http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%@&start=%u", [searchBar.text stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding],start+5]];
-    request = [NSURLRequest requestWithURL:url];
-    
-    
-    AFJSONRequestOperation *operation1 = [AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request1, NSHTTPURLResponse *response, id JSON1) {
-        id results1 = [JSON1 valueForKeyPath:@"responseData.results"];
-        NSLog(@"Results are :%@",results1);
-        [self.imageResults addObjectsFromArray:results1];
-        [self.photoCollectionView reloadData];
-        
-    } failure:nil];
-    
-    url =[NSURL URLWithString:[NSString stringWithFormat:@"http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%@&start=%u", [searchBar.text stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding],start+10]];
-    request = [NSURLRequest requestWithURL:url];
-    
-    
-    AFJSONRequestOperation *operation2= [AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request1, NSHTTPURLResponse *response, id JSON1) {
-        id results1 = [JSON1 valueForKeyPath:@"responseData.results"];
-        NSLog(@"Results are :%@",results1);
-        [self.imageResults addObjectsFromArray:results1];
-        [self.photoCollectionView reloadData];
-        
-    } failure:nil];
+   
     
     
     [operation start];
-    [operation1 start];
-    [operation2 start];
 
     
     NSLog(@"The count of images:%u",self.imageResults.count);
@@ -194,5 +178,25 @@
     [self.navigationController setNavigationBarHidden:NO animated:YES];
     return YES;
 }
+
+#pragma -mark UIScroll View delegate methods
+- (void)scrollViewWillEndDragging:(UIScrollView *)scrollView withVelocity:(CGPoint)velocity targetContentOffset:(inout CGPoint *)targetContentOffset{
+    NSLog(@"UI Scroll view did end dragging");
+    startIndex =startIndex + 4;
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%@&start=%u", [self.googleSearchBar.text stringByAddingPercentEscapesUsingEncoding:NSASCIIStringEncoding],startIndex]];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    
+    AFJSONRequestOperation *operation = [AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
+        id results = [JSON valueForKeyPath:@"responseData.results"];
+        NSLog(@"Results are :%@",results);
+        [self.imageResults addObjectsFromArray:results];
+        [self.photoCollectionView reloadData];
+        
+    } failure:nil];
+    
+    [operation start];
+    
+}
+
 
 @end
